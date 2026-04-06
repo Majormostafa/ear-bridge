@@ -3,6 +3,7 @@ import React, { useEffect, useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootStack } from './src/navigation/RootStack';
 import { navTheme } from './src/theme/theme';
 import { AuthProvider, useAuth } from './src/state/auth';
@@ -40,20 +41,22 @@ function AppGate() {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: navTheme.colors.background }}>
-      <StatusBar style="light" />
-      <AuthProvider>
-        <OnboardingProvider>
-          <PermissionsProvider>
-            <SubscriptionProvider>
-              <AlertsProvider>
-                <PairingProvider>
-                  <AppGate />
-                </PairingProvider>
-              </AlertsProvider>
-            </SubscriptionProvider>
-          </PermissionsProvider>
-        </OnboardingProvider>
-      </AuthProvider>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <AuthProvider>
+          <OnboardingProvider>
+            <PermissionsProvider>
+              <SubscriptionProvider>
+                <AlertsProvider>
+                  <PairingProvider>
+                    <AppGate />
+                  </PairingProvider>
+                </AlertsProvider>
+              </SubscriptionProvider>
+            </PermissionsProvider>
+          </OnboardingProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

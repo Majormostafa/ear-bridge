@@ -1,19 +1,18 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Alert, Linking, StyleSheet, Switch, Text, View } from 'react-native';
 import { Camera } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { ScreenContainer } from '../components/ScreenContainer';
-import { SectionCard } from '../components/SectionCard';
+import { ScreenWrapper } from '../components/ScreenWrapper';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
 import { usePermissions } from '../state/permissions';
 import { ensureNotificationPermission } from '../utils/localNotifications';
 
-function ToggleCard({ title, description, icon, value, onToggle, testAction }) {
+function ToggleCard({ title, description, icon, value, onToggle }) {
   return (
     <View style={styles.row}>
       <View style={styles.iconWrap}>{icon}</View>
-      <View style={{ flex: 1 }}>
+      <View style={styles.flex1}>
         <Text style={styles.cardTitle}>{title}</Text>
         <Text style={styles.cardDesc}>{description}</Text>
       </View>
@@ -29,14 +28,10 @@ function ToggleCard({ title, description, icon, value, onToggle, testAction }) {
 
 export function PermissionsScreen({ navigation }) {
   const { permissions, booting, setPermissionGranted, allCoreGranted } = usePermissions();
-  const [busy, setBusy] = useState(false);
 
   const ready = useMemo(() => allCoreGranted, [allCoreGranted]);
 
   async function requestMicrophone(on) {
-    // Expo Go may fail to load `expo-av` on some setups/SDK combinations.
-    // For this front-end-only demo (simulated AI), we just store the toggle.
-    // Real microphone permission can be added later with a development build.
     await setPermissionGranted('microphone', !!on);
     if (on) {
       Alert.alert('Microphone (demo)', 'Microphone permission is simulated in Expo Go. Listening simulation is enabled.');
@@ -58,8 +53,6 @@ export function PermissionsScreen({ navigation }) {
       await setPermissionGranted('notifications', false);
       return;
     }
-    // Front-end only (Expo Go):
-    // Keep UI toggle working, but show alerts in-app (OS notification permission/push is not available reliably).
     await setPermissionGranted('notifications', true);
     await ensureNotificationPermission();
     Alert.alert(
@@ -69,7 +62,6 @@ export function PermissionsScreen({ navigation }) {
   }
 
   async function requestBackground(on) {
-    // Background work requires OS capabilities; in this front-end demo we only store the toggle.
     if (!on) {
       await setPermissionGranted('background', false);
       return;
@@ -86,64 +78,84 @@ export function PermissionsScreen({ navigation }) {
   }
 
   return (
-    <ScreenContainer>
-      <Text style={styles.title}>Permissions</Text>
-      <Text style={styles.subtitle}>
-        To Keep You Safe And Ensure The App Works Properly, Please Allow The Following Permissions:
-      </Text>
+    <ScreenWrapper>
+      <View style={styles.layout}>
+        <View style={styles.main}>
+          <Text style={styles.title}>Permissions</Text>
+          <Text style={styles.subtitle}>
+            To Keep You Safe And Ensure The App Works Properly, Please Allow The Following Permissions:
+          </Text>
 
-      <View style={{ height: 14 }} />
+          <View style={styles.spacerTop} />
 
-      <View>
-        <View style={{ marginBottom: 12 }}>
-          <ToggleCard
-            title="Microphone Access"
-            description="Detects Important Sounds Around You In Real Time."
-            value={permissions.microphone}
-            onToggle={(v) => (busy ? null : requestMicrophone(v))}
-            icon={<Ionicons name="mic" size={20} color={colors.primary} />}
-          />
+          <View>
+            <View style={styles.cardGap}>
+              <ToggleCard
+                title="Microphone Access"
+                description="Detects Important Sounds Around You In Real Time."
+                value={permissions.microphone}
+                onToggle={(v) => requestMicrophone(v)}
+                icon={<Ionicons name="mic" size={20} color={colors.primary} />}
+              />
+            </View>
+
+            <View style={styles.cardGap}>
+              <ToggleCard
+                title="Camera Access"
+                description="Used For Device Pairing And Emergency Features."
+                value={permissions.camera}
+                onToggle={(v) => requestCamera(v)}
+                icon={<Ionicons name="camera" size={20} color={colors.primary} />}
+              />
+            </View>
+
+            <View style={styles.cardGap}>
+              <ToggleCard
+                title="Notifications"
+                description="Send Alerts When Important Sounds Are Detected."
+                value={permissions.notifications}
+                onToggle={(v) => requestNotifications(v)}
+                icon={<Ionicons name="notifications" size={20} color={colors.primary} />}
+              />
+            </View>
+
+            <View style={styles.cardGapLast}>
+              <ToggleCard
+                title="Background Activity"
+                description="Sound Detection Running When App Closed."
+                value={permissions.background}
+                onToggle={(v) => requestBackground(v)}
+                icon={<Ionicons name="battery-charging" size={20} color={colors.primary} />}
+              />
+            </View>
+          </View>
         </View>
 
-        <View style={{ marginBottom: 12 }}>
-          <ToggleCard
-            title="Camera Access"
-            description="Used For Device Pairing And Emergency Features."
-            value={permissions.camera}
-            onToggle={(v) => (busy ? null : requestCamera(v))}
-            icon={<Ionicons name="camera" size={20} color={colors.primary} />}
-          />
-        </View>
-
-        <View style={{ marginBottom: 12 }}>
-          <ToggleCard
-            title="Notifications"
-            description="Send Alerts When Important Sounds Are Detected."
-            value={permissions.notifications}
-            onToggle={(v) => (busy ? null : requestNotifications(v))}
-            icon={<Ionicons name="notifications" size={20} color={colors.primary} />}
-          />
-        </View>
-
-        <View style={{ marginBottom: 4 }}>
-          <ToggleCard
-            title="Background Activity"
-            description="Sound Detection Running When App Closed."
-            value={permissions.background}
-            onToggle={(v) => (busy ? null : requestBackground(v))}
-            icon={<Ionicons name="battery-charging" size={20} color={colors.primary} />}
+        <View style={styles.footer}>
+          <PrimaryButton
+            title={booting ? 'Loading...' : 'Continue'}
+            disabled={!ready}
+            onPress={() => navigation.replace('Subscription')}
           />
         </View>
       </View>
-
-      <View style={{ flex: 1 }} />
-
-      <PrimaryButton title={booting ? 'Loading...' : 'Continue'} disabled={!ready} onPress={() => navigation.replace('Subscription')} />
-    </ScreenContainer>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
+  layout: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  main: {
+    flex: 1,
+    minHeight: 0,
+  },
+  flex1: { flex: 1 },
+  spacerTop: { height: 14 },
+  cardGap: { marginBottom: 12 },
+  cardGapLast: { marginBottom: 4 },
   title: { fontSize: 28, fontWeight: '900', color: colors.text, textAlign: 'center', marginTop: 8 },
   subtitle: { color: colors.muted, fontSize: 15, lineHeight: 22, marginTop: 10, textAlign: 'center' },
   row: {
@@ -157,8 +169,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17,27,46,0.25)',
   },
   iconWrap: {
-    width: 38,
-    height: 38,
+    aspectRatio: 1,
+    minWidth: 38,
+    minHeight: 38,
     borderRadius: 999,
     backgroundColor: 'rgba(11,107,31,0.18)',
     alignItems: 'center',
@@ -167,5 +180,8 @@ const styles = StyleSheet.create({
   },
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
   cardDesc: { color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 18 },
+  footer: {
+    width: '100%',
+    paddingBottom: 4,
+  },
 });
-
