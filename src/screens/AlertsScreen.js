@@ -1,127 +1,432 @@
-import React from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { ScreenWrapper } from '../components/ScreenWrapper';
-import { colors } from '../theme/colors';
-import { useAlerts, formatRelativeTime } from '../state/alerts';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
+import { ArrowLeft, Baby, Bell, Copy, Flame, Trash2 } from 'lucide-react-native';
+import { useAlerts } from '../state/alerts';
+import { SCREEN_HORIZONTAL_PADDING } from '../theme/layout';
 
-function iconForAlert(alert) {
-  const label = (alert?.label ?? '').toLowerCase();
-  if (label.includes('baby')) return 'happy-outline';
-  if (label.includes('door')) return 'home-outline';
-  if (label.includes('fire')) return 'flame-outline';
-  if (label.includes('loud')) return 'volume-high-outline';
-  if (label.includes('ambulance')) return 'medical-outline';
-  return 'notifications-outline';
+const HEADER_GREEN = '#4CAF50';
+const TEXT_GREEN = '#2E7D32';
+const CHIP_ACTIVE_BG = '#121B2B';
+const PAGE_BG = '#FFFFFF';
+const MUTED_GRAY = '#9CA3AF';
+const BORDER_SUBTLE = '#E5E7EB';
+const ICON_TINT = '#2E7D32';
+const ICON_BOX_BG = 'rgba(76, 175, 80, 0.14)';
+
+const CARD_SHADOW = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 10,
+  elevation: 2,
+};
+
+const CATEGORIES = ['All', 'Alarm', 'Baby', 'House Hold'];
+
+function categoryForAlert(alert) {
+  const l = (alert.label || '').toLowerCase();
+  if (l.includes('baby')) return 'Baby';
+  if (l.includes('fire') || l.includes('alarm') || l.includes('ambulance')) return 'Alarm';
+  return 'House Hold';
+}
+
+function lucideIconForAlert(alert) {
+  const l = (alert.label || '').toLowerCase();
+  if (l.includes('baby')) return Baby;
+  if (l.includes('fire') || l.includes('alarm')) return Flame;
+  return Bell;
+}
+
+function formatCardDateTime(createdAtMs) {
+  const d = new Date(createdAtMs);
+  return {
+    time: d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+    date: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+  };
+}
+
+function buildCopyText(alert) {
+  const { time, date } = formatCardDateTime(alert.createdAt);
+  const conf =
+    typeof alert.confidence === 'number' ? `${Math.round(alert.confidence)}% confidence` : '—';
+  const loc = alert.location ? ` • ${alert.location}` : '';
+  return `${alert.label ?? 'Alert'}${loc} • ${conf} • ${time} ${date}`;
 }
 
 export function AlertsScreen() {
-  const { alerts, clearAlerts } = useAlerts();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const { alerts, removeAlert } = useAlerts();
+  const [activeCategory, setActiveCategory] = useState('All');
+
+  const filteredAlerts = useMemo(() => {
+    if (activeCategory === 'All') return alerts;
+    return alerts.filter((a) => categoryForAlert(a) === activeCategory);
+  }, [alerts, activeCategory]);
+
+  const onBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Home');
+    }
+  }, [navigation]);
+
+  const onCopy = useCallback(async (item) => {
+    try {
+      await Clipboard.setStringAsync(buildCopyText(item));
+      try {
+        await Haptics.selectionAsync();
+      } catch {
+        /* Haptics unavailable (e.g. web) */
+      }
+    } catch {
+      Alert.alert('Copy failed', 'Could not copy to the clipboard.');
+    }
+  }, []);
+
+  const onDelete = useCallback(
+    (item) => {
+      Alert.alert('Delete alert', 'Remove this alert from your history?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            removeAlert(item.id);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          },
+        },
+      ]);
+    },
+    [removeAlert],
+  );
+
+  const renderItem = useCallback(
+    ({ item }) => {
+      const { time, date } = formatCardDateTime(item.createdAt);
+      const conf =
+        typeof item.confidence === 'number'
+          ? `${Math.round(item.confidence)}% Confidence`
+          : 'Confidence';
+      const Icon = lucideIconForAlert(item);
+
+      return (
+        <View
+          style={[
+            styles.card,
+            CARD_SHADOW,
+            Platform.OS === 'android' && styles.cardAndroid,
+          ]}
+        >
+          <View style={styles.cardRow}>
+            <View style={styles.iconBox}>
+              <Icon size={22} color={ICON_TINT} strokeWidth={2} />
+            </View>
+
+            <View style={styles.cardBody}>
+              <View style={styles.cardTopRow}>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {item.label ?? 'Alert'}
+                </Text>
+                <View style={styles.cardTimeCol}>
+                  <Text style={styles.cardTime}>{time}</Text>
+                  <Text style={styles.cardDate}>{date}</Text>
+                </View>
+              </View>
+
+              <View style={styles.cardBottomRow}>
+                <Text
+                  style={[
+                    styles.cardConfidence,
+                    typeof item.confidence !== 'number' && styles.cardConfidenceMuted,
+                  ]}
+                >
+                  {conf}
+                </Text>
+                <View style={styles.cardActions}>
+                  <Pressable
+                    onPress={() => onCopy(item)}
+                    style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+                    hitSlop={10}
+                  >
+                    <Copy size={20} color={MUTED_GRAY} strokeWidth={2} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => onDelete(item)}
+                    style={({ pressed }) => [
+                      styles.iconBtn,
+                      styles.iconBtnTrailing,
+                      pressed && styles.iconBtnPressed,
+                    ]}
+                    hitSlop={10}
+                  >
+                    <Trash2 size={20} color={MUTED_GRAY} strokeWidth={2} />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    },
+    [onCopy, onDelete],
+  );
+
+  const keyExtractor = useCallback((item) => item.id, []);
+
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.chipsSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsScroll}
+        >
+          {CATEGORIES.map((cat) => {
+            const active = cat === activeCategory;
+            return (
+              <Pressable
+                key={cat}
+                onPress={() => setActiveCategory(cat)}
+                style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}
+              >
+                <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{cat}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    ),
+    [activeCategory],
+  );
+
+  const empty = useMemo(() => {
+    const filteredOut = alerts.length > 0 && filteredAlerts.length === 0;
+    return (
+      <View style={styles.emptyWrap}>
+        <Bell size={40} color={BORDER_SUBTLE} strokeWidth={1.75} />
+        <Text style={styles.emptyTitle}>
+          {filteredOut ? 'Nothing in this category' : 'No alerts yet'}
+        </Text>
+        <Text style={styles.emptySub}>
+          {filteredOut
+            ? 'Try another filter or view All.'
+            : 'Sound detections will appear here.'}
+        </Text>
+      </View>
+    );
+  }, [alerts.length, filteredAlerts.length]);
 
   return (
-    <ScreenWrapper>
-      <View style={styles.layout}>
-        <View style={styles.main}>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>Recent Incoming Alert</Text>
-            <Pressable
-              onPress={() =>
-                Alert.alert('Clear history', 'Are you sure you want to clear alerts? This is local-only.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Clear', style: 'destructive', onPress: () => clearAlerts() },
-                ])
-              }
-            >
-              <Text style={styles.clear}>Clear History</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.spacer} />
-
-          {alerts.length === 0 ? (
-            <View style={styles.empty}>
-              <Ionicons name="notifications-off-outline" size={22} color={colors.muted} />
-              <Text style={styles.emptyText}>No alerts yet. Start listening.</Text>
-            </View>
-          ) : (
-            <View style={styles.listTop}>
-              {alerts.slice(0, 10).map((a) => (
-                <View key={a.id} style={styles.item}>
-                  <View style={styles.leftIcon}>
-                    <Ionicons name={iconForAlert(a)} size={18} color={colors.primary} />
-                  </View>
-                  <View style={styles.flex1}>
-                    <Text style={styles.itemTitle}>{a.label}</Text>
-                    <Text style={styles.itemSub}>
-                      {a.location ? a.location + ' • ' : ''}
-                      {formatRelativeTime(Date.now(), a.createdAt)}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        <View style={styles.footer}>
-          <View style={styles.needHelp}>
-            <Ionicons name="help-circle-outline" size={18} color={colors.muted} />
-            <Text style={styles.needHelpText}>Need help?</Text>
-          </View>
+    <View style={[styles.root, { paddingBottom: insets.bottom }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.headerRow}>
+          <Pressable onPress={onBack} style={styles.headerSide} hitSlop={12}>
+            <ArrowLeft color="#FFFFFF" size={24} strokeWidth={2} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Alert</Text>
+          <View style={styles.headerSide} />
         </View>
       </View>
-    </ScreenWrapper>
+
+      <FlatList
+        data={filteredAlerts}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={empty}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  layout: {
+  root: {
     flex: 1,
+    backgroundColor: PAGE_BG,
+  },
+  header: {
+    backgroundColor: HEADER_GREEN,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
+    paddingBottom: 18,
+    overflow: 'hidden',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING - 4,
+  },
+  headerSide: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  chipsSection: {
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
+  chipsScroll: {
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingRight: SCREEN_HORIZONTAL_PADDING + 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chip: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginRight: 10,
+  },
+  chipActive: {
+    backgroundColor: CHIP_ACTIVE_BG,
+  },
+  chipInactive: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: BORDER_SUBTLE,
+  },
+  chipLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: CHIP_ACTIVE_BG,
+  },
+  chipLabelActive: {
+    color: '#FFFFFF',
+  },
+  listContent: {
+    paddingTop: 12,
+    paddingBottom: 28,
+    flexGrow: 1,
+  },
+  card: {
+    marginHorizontal: SCREEN_HORIZONTAL_PADDING,
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+  },
+  cardAndroid: {
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: ICON_BOX_BG,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  cardBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
-  main: {
+  cardTitle: {
     flex: 1,
-    minHeight: 0,
+    fontSize: 16,
+    fontWeight: '700',
+    color: TEXT_GREEN,
+    letterSpacing: -0.2,
   },
-  flex1: { flex: 1 },
-  title: { color: colors.text, fontSize: 18, fontWeight: '900', flex: 1, paddingRight: 8 },
-  clear: { color: colors.primary, fontSize: 14, fontWeight: '900', marginTop: 2 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 8 },
-  spacer: { height: 12 },
-  listTop: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  item: {
+  cardTimeCol: {
+    alignItems: 'flex-end',
+  },
+  cardTime: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: MUTED_GRAY,
+  },
+  cardDate: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '500',
+    color: MUTED_GRAY,
+  },
+  cardBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'space-between',
+    marginTop: 6,
   },
-  leftIcon: {
-    aspectRatio: 1,
-    minWidth: 34,
-    minHeight: 34,
-    borderRadius: 999,
-    backgroundColor: 'rgba(11,107,31,0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  cardConfidence: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: TEXT_GREEN,
   },
-  itemTitle: { color: colors.text, fontWeight: '900' },
-  itemSub: { color: colors.muted, marginTop: 4, fontSize: 13 },
-  empty: { alignItems: 'center', marginTop: 38, padding: 16 },
-  emptyText: { color: colors.muted, marginTop: 10, textAlign: 'center', fontWeight: '600' },
-  footer: {
-    width: '100%',
+  cardConfidenceMuted: {
+    color: MUTED_GRAY,
+    fontWeight: '500',
   },
-  needHelp: {
+  cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
   },
-  needHelpText: { color: colors.muted, marginLeft: 10, fontWeight: '800' },
+  iconBtn: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  iconBtnTrailing: {
+    marginLeft: 4,
+  },
+  iconBtnPressed: {
+    opacity: 0.55,
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 72,
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    marginTop: 16,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  emptySub: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '500',
+    color: MUTED_GRAY,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 });

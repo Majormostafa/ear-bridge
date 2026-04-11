@@ -19,18 +19,24 @@ export function AlertsProvider({ children }) {
     return {
       alerts,
       booting,
-      addAlert: async ({ type, label, location }) => {
+      addAlert: async ({ type, label, location, confidence }) => {
         const newAlert = {
           id: `a_${Date.now()}_${Math.random().toString(16).slice(2)}`,
           type: type ?? 'Unknown',
           label: label ?? 'Alert',
           location: location ?? '',
           createdAt: Date.now(),
+          confidence: typeof confidence === 'number' ? confidence : undefined,
         };
         const next = [newAlert, ...alerts].slice(0, 50);
         setAlertsState(next);
         await setJson('alerts', next);
         return newAlert;
+      },
+      removeAlert: async (id) => {
+        const next = alerts.filter((a) => a.id !== id);
+        setAlertsState(next);
+        await setJson('alerts', next);
       },
       clearAlerts: async () => {
         setAlertsState([]);

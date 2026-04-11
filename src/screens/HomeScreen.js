@@ -30,7 +30,12 @@ export function HomeScreen({ navigation }) {
   useSoundDetection({
     enabled,
     onNewAlert: async (evt) => {
-      await addAlert({ type: evt.type, label: evt.label, location: evt.location });
+      await addAlert({
+        type: evt.type,
+        label: evt.label,
+        location: evt.location,
+        confidence: evt.confidence,
+      });
       if (evt.type === 'Emergency Sound' && (evt.label || '').toLowerCase().includes('ambulance')) {
         setLastAmbulance({
           label: evt.label,
