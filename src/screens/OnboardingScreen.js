@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { OutlineButton } from '../components/OutlineButton';
-import { colors } from '../theme/colors';
+import { useAppTheme } from '../state/appTheme';
 import { SCREEN_HORIZONTAL_PADDING } from '../theme/layout';
 import { useOnboarding } from '../state/onboarding';
 
@@ -22,11 +22,102 @@ const slides = [
 ];
 
 export function OnboardingScreen({ navigation }) {
+  const { colors, isDarkMode } = useAppTheme();
   const listRef = useRef(null);
   useWindowDimensions();
   const pageWidth = Dimensions.get('window').width;
   const [index, setIndex] = useState(0);
   const { skipOnboarding } = useOnboarding();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        layout: {
+          flex: 1,
+          justifyContent: 'space-between',
+        },
+        pagerHost: {
+          flex: 1,
+          minHeight: 0,
+          width: '100%',
+        },
+        flatList: {
+          flex: 1,
+        },
+        pagerTopSafe: {
+          flex: 1,
+          width: '100%',
+        },
+        slide: {
+          flex: 1,
+        },
+        slideInner: {
+          flex: 1,
+          width: '100%',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        illustrationPlaceholder: {
+          width: '100%',
+          maxWidth: '100%',
+          aspectRatio: 4 / 5,
+          borderRadius: 20,
+          backgroundColor: colors.softSurface,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        illustrationText: {
+          color: colors.muted,
+          fontSize: 18,
+          fontWeight: '600',
+        },
+        content: {
+          width: '100%',
+          maxWidth: '100%',
+          paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+          marginTop: 26,
+          alignItems: 'center',
+        },
+        title: {
+          color: colors.text,
+          fontSize: 28,
+          fontWeight: '800',
+          marginBottom: 10,
+          textAlign: 'center',
+        },
+        subtitle: {
+          color: colors.muted,
+          fontSize: 16,
+          lineHeight: 22,
+          textAlign: 'center',
+        },
+        indicatorWrap: {
+          width: '100%',
+        },
+        indicatorRow: {
+          flexDirection: 'row',
+          justifyContent: 'center',
+          marginTop: 10,
+          marginBottom: 8,
+        },
+        dot: {
+          width: 12,
+          height: 12,
+          borderRadius: 999,
+          marginHorizontal: 5,
+        },
+        footerSafe: {
+          width: '100%',
+          paddingBottom: 4,
+        },
+        gap: {
+          height: 12,
+        },
+      }),
+    [colors],
+  );
+
+  const dotInactive = isDarkMode ? 'rgba(255,255,255,0.25)' : 'rgba(100,116,139,0.35)';
 
   const indicator = useMemo(() => slides.map((s, i) => i === index), [index]);
 
@@ -85,7 +176,7 @@ export function OnboardingScreen({ navigation }) {
         </View>
       </View>
     ),
-    [pageWidth]
+    [pageWidth, styles]
   );
 
   return (
@@ -120,9 +211,7 @@ export function OnboardingScreen({ navigation }) {
                 key={i}
                 style={[
                   styles.dot,
-                  active
-                    ? { backgroundColor: colors.primary }
-                    : { backgroundColor: 'rgba(255,255,255,0.25)' },
+                  active ? { backgroundColor: colors.primary } : { backgroundColor: dotInactive },
                 ]}
               />
             ))}
@@ -166,87 +255,3 @@ export function OnboardingScreen({ navigation }) {
     </ScreenWrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  layout: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  pagerHost: {
-    flex: 1,
-    minHeight: 0,
-    width: '100%',
-  },
-  flatList: {
-    flex: 1,
-  },
-  pagerTopSafe: {
-    flex: 1,
-    width: '100%',
-  },
-  slide: {
-    flex: 1,
-  },
-  slideInner: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  illustrationPlaceholder: {
-    width: '100%',
-    maxWidth: '100%',
-    aspectRatio: 4 / 5,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  illustrationText: {
-    color: colors.muted,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  content: {
-    width: '100%',
-    maxWidth: '100%',
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    marginTop: 26,
-    alignItems: 'center',
-  },
-  title: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 16,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  indicatorWrap: {
-    width: '100%',
-  },
-  indicatorRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 999,
-    marginHorizontal: 5,
-  },
-  footerSafe: {
-    width: '100%',
-    paddingBottom: 4,
-  },
-  gap: {
-    height: 12,
-  },
-});

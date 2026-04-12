@@ -55,6 +55,40 @@ export function useAlerts() {
   return ctx;
 }
 
+/** Older builds stored these emoji-suffixed labels; normalize for display. */
+const LEGACY_EMOJI_LABELS = {
+  'Ambulance Nearby 🚑': 'Ambulance Nearby',
+  'Fire Alarm 🔥': 'Fire Alarm',
+  'Loud Noise 🔊': 'Loud Noise',
+  'Baby Crying 👶': 'Baby Crying',
+  'Door Bell 🔔': 'Door Bell',
+  'Emergency Alert 🚨': 'Emergency Alert',
+};
+
+function stripEmojis(input) {
+  if (input == null) return '';
+  let s = String(input);
+  try {
+    s = s.replace(/\p{Extended_Pictographic}/gu, '');
+  } catch {
+    s = s.replace(/[\uD83C-\uDBFF][\uDC00-\uDFFF]/g, '');
+  }
+  return s
+    .replace(/\uFE0F/g, '')
+    .replace(/\u200D/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Plain-text title for alerts (no emoji; icons carry visual cues). */
+export function getAlertDisplayLabel(label) {
+  if (label == null || label === '') return 'Alert';
+  let t = String(label).trim();
+  if (LEGACY_EMOJI_LABELS[t]) t = LEGACY_EMOJI_LABELS[t];
+  t = stripEmojis(t);
+  return t || 'Alert';
+}
+
 export function formatRelativeTime(nowMs, createdAtMs) {
   const diff = Math.max(0, nowMs - createdAtMs);
   const minutes = Math.floor(diff / (60 * 1000));

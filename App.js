@@ -1,23 +1,24 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootStack } from './src/navigation/RootStack';
-import { navTheme } from './src/theme/theme';
 import { AuthProvider, useAuth } from './src/state/auth';
 import { OnboardingProvider, useOnboarding } from './src/state/onboarding';
 import { PermissionsProvider, usePermissions } from './src/state/permissions';
 import { SubscriptionProvider, useSubscription } from './src/state/subscription';
 import { AlertsProvider } from './src/state/alerts';
 import { PairingProvider } from './src/state/pairing';
+import { AppThemeProvider, useAppTheme } from './src/state/appTheme';
 
 function AppGate() {
   const { user, booting: authBooting } = useAuth();
   const { onboardingDone, booting: onboardingBooting } = useOnboarding();
   const { allCoreGranted, booting: permBooting } = usePermissions();
   const { accessGranted, subscription, booting: subsBooting } = useSubscription();
+  const { navTheme } = useAppTheme();
 
   const flow = useMemo(() => {
     if (!onboardingDone) return { initial: 'Onboarding', key: 'onboarding' };
@@ -38,25 +39,35 @@ function AppGate() {
   );
 }
 
+function ThemedAppShell() {
+  const { colors, isDarkMode } = useAppTheme();
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      <AuthProvider>
+        <OnboardingProvider>
+          <PermissionsProvider>
+            <SubscriptionProvider>
+              <AlertsProvider>
+                <PairingProvider>
+                  <AppGate />
+                </PairingProvider>
+              </AlertsProvider>
+            </SubscriptionProvider>
+          </PermissionsProvider>
+        </OnboardingProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
+  );
+}
+
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: navTheme.colors.background }}>
-      <SafeAreaProvider>
-        <StatusBar style="light" />
-        <AuthProvider>
-          <OnboardingProvider>
-            <PermissionsProvider>
-              <SubscriptionProvider>
-                <AlertsProvider>
-                  <PairingProvider>
-                    <AppGate />
-                  </PairingProvider>
-                </AlertsProvider>
-              </SubscriptionProvider>
-            </PermissionsProvider>
-          </OnboardingProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <AppThemeProvider>
+        <ThemedAppShell />
+      </AppThemeProvider>
+    </SafeAreaProvider>
   );
 }

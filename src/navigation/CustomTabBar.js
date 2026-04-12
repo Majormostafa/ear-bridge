@@ -1,26 +1,19 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Home, Bell, Settings, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const BAR_BG = '#0F172A';
-const INACTIVE = '#94A3B8';
-const ACTIVE = '#FFFFFF';
+import { useAppTheme } from '../state/appTheme';
 
 const ICON_SIZE = 24;
 
-/** Selected tab: “bubble” rest pose */
-const FLOAT_TRANSLATE_Y = -9;
-const FLOAT_SCALE = 1.15;
-
-/** Extra lift while finger is down */
-const PRESS_TRANSLATE_Y = -12;
-const PRESS_SCALE = 1.2;
+const ACTIVE_SCALE = 1.1;
+const INACTIVE_SCALE = 1;
+const INACTIVE_ICON_OPACITY = 0.5;
 
 const springConfig = {
-  friction: 4,
-  tension: 125,
+  stiffness: 150,
+  damping: 20,
   useNativeDriver: true,
 };
 
@@ -28,17 +21,12 @@ const TAB_ICONS = [Home, Bell, Settings, User];
 
 const DEFAULT_LABELS = ['Home', 'Alert', 'Setting', 'Profile'];
 
-function getMotionTargets(index, activeIndex, pressingIndex) {
-  const isPressing = pressingIndex === index;
+function getMotionTargets(index, activeIndex) {
   const isActive = activeIndex === index;
-
-  if (isPressing) {
-    return { translateY: PRESS_TRANSLATE_Y, scale: PRESS_SCALE };
-  }
   if (isActive) {
-    return { translateY: FLOAT_TRANSLATE_Y, scale: FLOAT_SCALE };
+    return { scale: ACTIVE_SCALE, opacity: 1 };
   }
-  return { translateY: 0, scale: 1 };
+  return { scale: INACTIVE_SCALE, opacity: INACTIVE_ICON_OPACITY };
 }
 
 function triggerTabHaptic() {
@@ -47,41 +35,49 @@ function triggerTabHaptic() {
   }
 }
 
-function createMotionValues() {
+function createMotionValues(activeIndex) {
   return {
-    translateY: [0, 1, 2, 3].map(() => new Animated.Value(0)),
-    scale: [0, 1, 2, 3].map(() => new Animated.Value(1)),
+    scale: [0, 1, 2, 3].map((i) => new Animated.Value(i === activeIndex ? ACTIVE_SCALE : INACTIVE_SCALE)),
+    opacity: [0, 1, 2, 3].map((i) => new Animated.Value(i === activeIndex ? 1 : INACTIVE_ICON_OPACITY)),
   };
 }
 
 export function CustomTabBar({ state, descriptors, navigation, insets: propInsets }) {
+  const { isDarkMode } = useAppTheme();
+  const { INACTIVE, ACTIVE } = useMemo(
+    () =>
+      isDarkMode
+        ? { INACTIVE: '#94A3B8', ACTIVE: '#FFFFFF' }
+        : { INACTIVE: '#64748B', ACTIVE: '#0F172A' },
+    [isDarkMode],
+  );
+
   const safeInsets = useSafeAreaInsets();
   const insets = propInsets ?? { bottom: safeInsets.bottom, top: 0, left: 0, right: 0 };
 
   const activeIndex = state.index;
-  const [pressingIndex, setPressingIndex] = useState(null);
 
   const motionRef = useRef(null);
   if (!motionRef.current) {
-    motionRef.current = createMotionValues();
+    motionRef.current = createMotionValues(activeIndex);
   }
-  const { translateY: translateYVals, scale: scaleVals } = motionRef.current;
+  const { scale: scaleVals, opacity: opacityVals } = motionRef.current;
 
   useLayoutEffect(() => {
     for (let i = 0; i < 4; i += 1) {
-      const { translateY: ty, scale: sc } = getMotionTargets(i, activeIndex, pressingIndex);
+      const { scale: sc, opacity: op } = getMotionTargets(i, activeIndex);
       Animated.parallel([
-        Animated.spring(translateYVals[i], {
-          ...springConfig,
-          toValue: ty,
-        }),
         Animated.spring(scaleVals[i], {
           ...springConfig,
           toValue: sc,
         }),
+        Animated.spring(opacityVals[i], {
+          ...springConfig,
+          toValue: op,
+        }),
       ]).start();
     }
-  }, [activeIndex, pressingIndex, translateYVals, scaleVals]);
+  }, [activeIndex, scaleVals, opacityVals]);
 
   const emitNavigate = useCallback(
     (index) => {
@@ -131,18 +127,14 @@ export function CustomTabBar({ state, descriptors, navigation, insets: propInset
                 testID={opts.tabBarTestID}
                 onPress={() => emitNavigate(index)}
                 onLongPress={() => emitLongPress(index)}
-                onPressIn={() => setPressingIndex(index)}
-                onPressOut={() => setPressingIndex(null)}
                 style={styles.tabColumn}
               >
                 <Animated.View
                   style={[
                     styles.iconContainer,
                     {
-                      transform: [
-                        { translateY: translateYVals[index] },
-                        { scale: scaleVals[index] },
-                      ],
+                      opacity: opacityVals[index],
+                      transform: [{ scale: scaleVals[index] }],
                     },
                   ]}
                 >
@@ -168,24 +160,20 @@ export function CustomTabBar({ state, descriptors, navigation, insets: propInset
 
 const styles = StyleSheet.create({
   outer: {
-    backgroundColor: BAR_BG,
+    backgroundColor: 'transparent',
   },
   bar: {
-    backgroundColor: BAR_BG,
+    backgroundColor: 'transparent',
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(148, 163, 184, 0.25)',
+    borderTopWidth: 0,
     paddingTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 12,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 6,
     minHeight: 52,
@@ -196,13 +184,13 @@ const styles = StyleSheet.create({
   tabColumn: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     paddingBottom: 4,
     gap: 6,
   },
   iconContainer: {
-    width: ICON_SIZE + 12,
-    height: ICON_SIZE + 14,
+    width: ICON_SIZE + 16,
+    height: Math.ceil(ICON_SIZE * 1.1) + 6,
     alignItems: 'center',
     justifyContent: 'center',
   },

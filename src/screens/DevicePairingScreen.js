@@ -2,12 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenWrapper } from '../components/ScreenWrapper';
-import { colors } from '../theme/colors';
+import { useAppTheme } from '../state/appTheme';
 import { usePairing } from '../state/pairing';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { OutlineButton } from '../components/OutlineButton';
 
-function CodeBoxes({ value, onChange }) {
+function CodeBoxes({ value, onChange, styles }) {
   const digits = (value ?? '').replace(/\D/g, '').slice(0, 6).padEnd(6, ' ');
 
   return (
@@ -32,8 +32,59 @@ function CodeBoxes({ value, onChange }) {
 }
 
 export function DevicePairingScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const { addDevice } = usePairing();
   const [code, setCode] = useState('');
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        layout: {
+          flex: 1,
+          justifyContent: 'space-between',
+        },
+        main: {
+          flex: 1,
+          minHeight: 0,
+        },
+        header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', position: 'relative', marginTop: 4 },
+        backBtn: { position: 'absolute', left: 0, padding: 8, marginLeft: -8 },
+        title: { color: colors.text, fontSize: 26, fontWeight: '900', textAlign: 'center' },
+        subtitle: { color: colors.primary, fontSize: 18, fontWeight: '900', textAlign: 'center', marginTop: 16 },
+        desc: { color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+        spacerLg: { height: 28 },
+        spacerMd: { height: 22 },
+        spacerSm: { height: 10 },
+        codeWrap: { marginTop: 10 },
+        boxRow: { flexDirection: 'row', width: '100%', gap: 6 },
+        codeBox: {
+          flex: 1,
+          minWidth: 0,
+          minHeight: 54,
+          borderRadius: 10,
+          backgroundColor: 'rgba(46,125,50,0.10)',
+          borderWidth: 1,
+          borderColor: 'rgba(46,125,50,0.35)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        codeBoxText: { color: colors.text, fontSize: 22, fontWeight: '900' },
+        hiddenInput: {
+          position: 'absolute',
+          opacity: 0,
+          height: 1,
+          width: 1,
+        },
+        manualButtons: { flexDirection: 'row', width: '100%', gap: 10 },
+        btnHalf: { flex: 1, minWidth: 0 },
+        footer: {
+          width: '100%',
+          paddingBottom: 8,
+        },
+        footerNote: { color: colors.muted, textAlign: 'center', fontWeight: '600' },
+      }),
+    [colors],
+  );
 
   const canAddManually = useMemo(() => code.length === 6, [code]);
 
@@ -53,7 +104,7 @@ export function DevicePairingScreen({ navigation }) {
 
           <View style={styles.spacerLg} />
 
-          <CodeBoxes value={code} onChange={setCode} />
+          <CodeBoxes value={code} onChange={setCode} styles={styles} />
 
           <View style={styles.spacerMd} />
         </View>
@@ -91,49 +142,3 @@ export function DevicePairingScreen({ navigation }) {
     </ScreenWrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  layout: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  main: {
-    flex: 1,
-    minHeight: 0,
-  },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', position: 'relative', marginTop: 4 },
-  backBtn: { position: 'absolute', left: 0, padding: 8, marginLeft: -8 },
-  title: { color: colors.text, fontSize: 26, fontWeight: '900', textAlign: 'center' },
-  subtitle: { color: colors.primary, fontSize: 18, fontWeight: '900', textAlign: 'center', marginTop: 16 },
-  desc: { color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
-  spacerLg: { height: 28 },
-  spacerMd: { height: 22 },
-  spacerSm: { height: 10 },
-  codeWrap: { marginTop: 10 },
-  boxRow: { flexDirection: 'row', width: '100%', gap: 6 },
-  codeBox: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 54,
-    borderRadius: 10,
-    backgroundColor: 'rgba(34,197,94,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(34,197,94,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  codeBoxText: { color: colors.text, fontSize: 22, fontWeight: '900' },
-  hiddenInput: {
-    position: 'absolute',
-    opacity: 0,
-    height: 1,
-    width: 1,
-  },
-  manualButtons: { flexDirection: 'row', width: '100%', gap: 10 },
-  btnHalf: { flex: 1, minWidth: 0 },
-  footer: {
-    width: '100%',
-    paddingBottom: 8,
-  },
-  footerNote: { color: colors.muted, textAlign: 'center', fontWeight: '600' },
-});

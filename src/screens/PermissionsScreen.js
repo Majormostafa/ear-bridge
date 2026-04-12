@@ -4,11 +4,13 @@ import { Camera } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { colors } from '../theme/colors';
+import { useAppTheme } from '../state/appTheme';
 import { usePermissions } from '../state/permissions';
 import { ensureNotificationPermission } from '../utils/localNotifications';
 
-function ToggleCard({ title, description, icon, value, onToggle }) {
+const SWITCH_TRACK_ON = 'rgba(46, 125, 50, 0.45)';
+
+function ToggleCard({ title, description, icon, value, onToggle, colors, styles }) {
   return (
     <View style={styles.row}>
       <View style={styles.iconWrap}>{icon}</View>
@@ -19,15 +21,63 @@ function ToggleCard({ title, description, icon, value, onToggle }) {
       <Switch
         value={value}
         onValueChange={(v) => onToggle(v)}
-        thumbColor={value ? colors.primary : 'rgba(255,255,255,0.25)'}
-        trackColor={{ false: 'rgba(255,255,255,0.18)', true: 'rgba(11,107,31,0.35)' }}
+        thumbColor={value ? colors.primary : 'rgba(148, 163, 184, 0.45)'}
+        trackColor={{ false: 'rgba(148, 163, 184, 0.25)', true: SWITCH_TRACK_ON }}
       />
     </View>
   );
 }
 
 export function PermissionsScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const { permissions, booting, setPermissionGranted, allCoreGranted } = usePermissions();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        layout: {
+          flex: 1,
+          justifyContent: 'space-between',
+        },
+        main: {
+          flex: 1,
+          minHeight: 0,
+        },
+        flex1: { flex: 1 },
+        spacerTop: { height: 14 },
+        cardGap: { marginBottom: 12 },
+        cardGapLast: { marginBottom: 4 },
+        title: { fontSize: 28, fontWeight: '900', color: colors.text, textAlign: 'center', marginTop: 8 },
+        subtitle: { color: colors.muted, fontSize: 15, lineHeight: 22, marginTop: 10, textAlign: 'center' },
+        row: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: 14,
+          paddingHorizontal: 14,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: colors.inputBorder,
+          backgroundColor: colors.inputBg,
+        },
+        iconWrap: {
+          aspectRatio: 1,
+          minWidth: 38,
+          minHeight: 38,
+          borderRadius: 999,
+          backgroundColor: colors.iconTintBg,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 12,
+        },
+        cardTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+        cardDesc: { color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 18 },
+        footer: {
+          width: '100%',
+          paddingBottom: 4,
+        },
+      }),
+    [colors],
+  );
 
   const ready = useMemo(() => allCoreGranted, [allCoreGranted]);
 
@@ -96,6 +146,8 @@ export function PermissionsScreen({ navigation }) {
                 value={permissions.microphone}
                 onToggle={(v) => requestMicrophone(v)}
                 icon={<Ionicons name="mic" size={20} color={colors.primary} />}
+                colors={colors}
+                styles={styles}
               />
             </View>
 
@@ -106,6 +158,8 @@ export function PermissionsScreen({ navigation }) {
                 value={permissions.camera}
                 onToggle={(v) => requestCamera(v)}
                 icon={<Ionicons name="camera" size={20} color={colors.primary} />}
+                colors={colors}
+                styles={styles}
               />
             </View>
 
@@ -116,6 +170,8 @@ export function PermissionsScreen({ navigation }) {
                 value={permissions.notifications}
                 onToggle={(v) => requestNotifications(v)}
                 icon={<Ionicons name="notifications" size={20} color={colors.primary} />}
+                colors={colors}
+                styles={styles}
               />
             </View>
 
@@ -126,6 +182,8 @@ export function PermissionsScreen({ navigation }) {
                 value={permissions.background}
                 onToggle={(v) => requestBackground(v)}
                 icon={<Ionicons name="battery-charging" size={20} color={colors.primary} />}
+                colors={colors}
+                styles={styles}
               />
             </View>
           </View>
@@ -142,46 +200,3 @@ export function PermissionsScreen({ navigation }) {
     </ScreenWrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  layout: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  main: {
-    flex: 1,
-    minHeight: 0,
-  },
-  flex1: { flex: 1 },
-  spacerTop: { height: 14 },
-  cardGap: { marginBottom: 12 },
-  cardGapLast: { marginBottom: 4 },
-  title: { fontSize: 28, fontWeight: '900', color: colors.text, textAlign: 'center', marginTop: 8 },
-  subtitle: { color: colors.muted, fontSize: 15, lineHeight: 22, marginTop: 10, textAlign: 'center' },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(17,27,46,0.25)',
-  },
-  iconWrap: {
-    aspectRatio: 1,
-    minWidth: 38,
-    minHeight: 38,
-    borderRadius: 999,
-    backgroundColor: 'rgba(11,107,31,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  cardDesc: { color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 18 },
-  footer: {
-    width: '100%',
-    paddingBottom: 4,
-  },
-});

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { TextInputField } from '../components/TextInputField';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { colors } from '../theme/colors';
+import { useAppTheme } from '../state/appTheme';
 import { useAuth } from '../state/auth';
 
 const USERNAME_RE = /^[a-zA-Z0-9]{3,16}$/;
@@ -24,6 +24,7 @@ function isPasswordValid(value) {
 }
 
 export function SignupScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,6 +41,75 @@ export function SignupScreen({ navigation }) {
     password: false,
     confirm: false,
   });
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        layout: {
+          flex: 1,
+          justifyContent: 'space-between',
+        },
+        scroll: {
+          flex: 1,
+          minHeight: 0,
+        },
+        scrollContent: {
+          paddingTop: 4,
+          paddingBottom: 12,
+        },
+        flex1: { flex: 1 },
+        spacerSm: { height: 12 },
+        spacerMd: { height: 18 },
+        brand: {
+          color: colors.text,
+          fontSize: 26,
+          fontWeight: '800',
+          marginTop: 10,
+          textAlign: 'center',
+        },
+        headline: {
+          color: colors.text,
+          fontSize: 22,
+          fontWeight: '800',
+          marginTop: 18,
+          textAlign: 'center',
+        },
+        sub: {
+          color: colors.muted,
+          fontSize: 15,
+          lineHeight: 22,
+          marginTop: 8,
+          textAlign: 'center',
+        },
+        passwordRow: { flexDirection: 'row', alignItems: 'center' },
+        eyeBtn: { minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+        checkRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+        checkbox: {
+          width: 24,
+          height: 24,
+          borderRadius: 4,
+          borderWidth: 1,
+          borderColor: colors.checkboxBorder,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        checkText: { color: colors.text, fontSize: 15, marginLeft: 10, flexShrink: 1 },
+        footer: {
+          width: '100%',
+          paddingBottom: 6,
+        },
+        bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' },
+        bottomText: { color: colors.muted, fontSize: 15 },
+        link: {
+          color: colors.primary,
+          fontSize: 16,
+          fontWeight: '800',
+          textDecorationLine: 'underline',
+          marginLeft: 6,
+        },
+      }),
+    [colors],
+  );
 
   const usernameError = useMemo(() => {
     if (!touched.username) return '';
@@ -194,7 +264,12 @@ export function SignupScreen({ navigation }) {
             <View
               style={[
                 styles.checkbox,
-                agree ? { borderColor: colors.primary, backgroundColor: 'rgba(11,107,31,0.28)' } : null,
+                agree
+                  ? {
+                      borderColor: colors.primary,
+                      backgroundColor: 'rgba(46, 125, 50, 0.28)',
+                    }
+                  : null,
               ]}
             >
               {agree ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
@@ -219,62 +294,3 @@ export function SignupScreen({ navigation }) {
     </ScreenWrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  layout: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  scroll: {
-    flex: 1,
-    minHeight: 0,
-  },
-  scrollContent: {
-    paddingTop: 4,
-    paddingBottom: 12,
-  },
-  flex1: { flex: 1 },
-  spacerSm: { height: 12 },
-  spacerMd: { height: 18 },
-  brand: {
-    color: colors.text,
-    fontSize: 26,
-    fontWeight: '800',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  headline: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: 18,
-    textAlign: 'center',
-  },
-  sub: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  passwordRow: { flexDirection: 'row', alignItems: 'center' },
-  eyeBtn: { minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  checkRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkText: { color: colors.text, fontSize: 15, marginLeft: 10, flexShrink: 1 },
-  footer: {
-    width: '100%',
-    paddingBottom: 6,
-  },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' },
-  bottomText: { color: colors.muted, fontSize: 15 },
-  link: { color: colors.primary, fontSize: 16, fontWeight: '800', textDecorationLine: 'underline', marginLeft: 6 },
-});

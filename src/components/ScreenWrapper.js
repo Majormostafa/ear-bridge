@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../theme/colors';
+import { useAppTheme } from '../state/appTheme';
 import { SCREEN_HORIZONTAL_PADDING } from '../theme/layout';
 
 /**
@@ -16,6 +16,24 @@ export function ScreenWrapper({
   keyboardVerticalOffset = 0,
   edges,
 }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        safe: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        kav: {
+          flex: 1,
+        },
+        inner: {
+          flex: 1,
+        },
+      }),
+    [colors.background],
+  );
+
   const padStyle =
     horizontalPadding != null ? { paddingHorizontal: horizontalPadding } : null;
 
@@ -31,16 +49,3 @@ export function ScreenWrapper({
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  kav: {
-    flex: 1,
-  },
-  inner: {
-    flex: 1,
-  },
-});

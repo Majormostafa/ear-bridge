@@ -1,19 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useAppTheme } from '../state/appTheme';
 
 export function SectionCard({ children, style }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          width: '100%',
+          backgroundColor: colors.card,
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+          padding: 16,
+        },
+      }),
+    [colors.card, colors.cardBorder],
+  );
+
   return <View style={[styles.card, style]}>{children}</View>;
 }
-
-const styles = StyleSheet.create({
-  card: {
-    width: '100%',
-    backgroundColor: colors.card,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    padding: 16,
-  },
-});
-

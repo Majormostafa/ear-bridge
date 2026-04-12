@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Ambulance } from 'lucide-react-native';
 import { ScreenWrapper } from '../components/ScreenWrapper';
-import { colors } from '../theme/colors';
+import { useAppTheme } from '../state/appTheme';
 import { useAuth } from '../state/auth';
 import { usePermissions } from '../state/permissions';
 import { useSubscription } from '../state/subscription';
@@ -10,7 +11,7 @@ import { useAlerts } from '../state/alerts';
 import { useSoundDetection } from '../detection/useSoundDetection';
 import { PrimaryButton } from '../components/PrimaryButton';
 
-function ProgressBar({ value }) {
+function ProgressBar({ value, styles }) {
   return (
     <View style={styles.progressWrap}>
       <View style={[styles.progressInner, { width: `${Math.max(0, Math.min(100, value))}%` }]} />
@@ -19,6 +20,7 @@ function ProgressBar({ value }) {
 }
 
 export function HomeScreen({ navigation }) {
+  const { colors } = useAppTheme();
   const { user } = useAuth();
   const { permissions } = usePermissions();
   const { accessGranted, trialActive } = useSubscription();
@@ -52,6 +54,102 @@ export function HomeScreen({ navigation }) {
     return 'Listening';
   }, [permissions.microphone, accessGranted]);
 
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        layout: {
+          flex: 1,
+          justifyContent: 'space-between',
+        },
+        main: {
+          flex: 1,
+          minHeight: 0,
+        },
+        headerText: { flex: 1, marginLeft: 12 },
+        headerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+        profileCircle: {
+          aspectRatio: 1,
+          width: '11%',
+          maxWidth: 48,
+          minWidth: 40,
+          borderRadius: 999,
+          backgroundColor: colors.profilePlaceholder,
+        },
+        welcome: { color: colors.text, fontSize: 16, fontWeight: '800' },
+        location: { color: colors.muted, fontSize: 13, marginTop: 2 },
+        listenWrap: { alignItems: 'center', marginTop: 22 },
+        listenCircle: {
+          width: '58%',
+          maxWidth: 280,
+          aspectRatio: 1,
+          borderWidth: 10,
+          borderColor: colors.listenCircleBorderIdle,
+          backgroundColor: colors.listenCircleBg,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 999,
+        },
+        listenDot: {
+          aspectRatio: 1,
+          width: '5.5%',
+          maxWidth: 14,
+          borderRadius: 999,
+          backgroundColor: colors.primary,
+          marginBottom: 14,
+        },
+        listenTxt: { color: colors.text, fontSize: 18, fontWeight: '900' },
+        card: {
+          marginTop: 18,
+          backgroundColor: colors.card,
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+          padding: 16,
+        },
+        cardTop: { flexDirection: 'row', alignItems: 'center' },
+        emergencyIconWrap: {
+          width: 52,
+          height: 52,
+          borderRadius: 12,
+          backgroundColor: 'rgba(76, 175, 80, 0.15)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 10,
+        },
+        cardTitle: { color: colors.text, fontSize: 16, fontWeight: '900', flex: 1 },
+        nowTag: { color: 'rgba(34,197,94,0.95)', fontWeight: '900' },
+        cardBody: { color: colors.muted, marginTop: 10, lineHeight: 20 },
+        progressWrap: {
+          height: 10,
+          borderRadius: 999,
+          backgroundColor: colors.progressTrack,
+          overflow: 'hidden',
+          marginTop: 14,
+        },
+        progressInner: { height: '100%', backgroundColor: colors.primary },
+        confRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 10 },
+        confLabel: { color: colors.muted, fontSize: 14, fontWeight: '600' },
+        confValue: { color: colors.text, fontSize: 16, fontWeight: '900' },
+        infoBox: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginTop: 14,
+          padding: 12,
+          borderRadius: 16,
+          backgroundColor: colors.infoBoxBg,
+          borderWidth: 1,
+          borderColor: colors.infoBoxBorder,
+        },
+        infoText: { color: colors.muted, marginLeft: 10, lineHeight: 18, fontSize: 13, flex: 1 },
+        footer: {
+          width: '100%',
+          paddingTop: 12,
+          paddingBottom: 4,
+        },
+      }),
+    [colors],
+  );
+
   return (
     <ScreenWrapper>
       <View style={styles.layout}>
@@ -69,13 +167,13 @@ export function HomeScreen({ navigation }) {
             <View
               style={[
                 styles.listenCircle,
-                enabled ? { borderColor: 'rgba(34,197,94,0.7)' } : { borderColor: 'rgba(255,255,255,0.18)' },
+                enabled ? { borderColor: 'rgba(34,197,94,0.7)' } : null,
               ]}
             >
               <View
                 style={[
                   styles.listenDot,
-                  enabled ? { backgroundColor: colors.primary } : { backgroundColor: 'rgba(255,255,255,0.35)' },
+                  enabled ? null : { backgroundColor: 'rgba(148,163,184,0.45)' },
                 ]}
               />
               <Text style={styles.listenTxt}>{enabled ? 'Listening' : 'Stopped'}</Text>
@@ -86,13 +184,13 @@ export function HomeScreen({ navigation }) {
             <View style={styles.card}>
               <View style={styles.cardTop}>
                 <View style={styles.emergencyIconWrap}>
-                  <Ionicons name="medical-outline" size={18} color="#ffffff" />
+                  <Ambulance size={24} color="#4ADE80" strokeWidth={2} />
                 </View>
                 <Text style={styles.cardTitle}>Ambulance Nearby</Text>
                 <Text style={styles.nowTag}>Now</Text>
               </View>
               <Text style={styles.cardBody}>Emergency Siren Detected, Check Your Surroundings</Text>
-              <ProgressBar value={lastAmbulance.confidence || 95} />
+              <ProgressBar value={lastAmbulance.confidence || 95} styles={styles} />
               <View style={styles.confRow}>
                 <Text style={styles.confLabel}>Confidence: </Text>
                 <Text style={styles.confValue}>{lastAmbulance.confidence || 95}%</Text>
@@ -134,96 +232,3 @@ export function HomeScreen({ navigation }) {
     </ScreenWrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  layout: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  main: {
-    flex: 1,
-    minHeight: 0,
-  },
-  headerText: { flex: 1, marginLeft: 12 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  profileCircle: {
-    aspectRatio: 1,
-    width: '11%',
-    maxWidth: 48,
-    minWidth: 40,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
-  welcome: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  location: { color: colors.muted, fontSize: 13, marginTop: 2 },
-  listenWrap: { alignItems: 'center', marginTop: 22 },
-  listenCircle: {
-    width: '58%',
-    maxWidth: 280,
-    aspectRatio: 1,
-    borderWidth: 10,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(17,27,46,0.75)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-  },
-  listenDot: {
-    aspectRatio: 1,
-    width: '5.5%',
-    maxWidth: 14,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-    marginBottom: 14,
-  },
-  listenTxt: { color: colors.text, fontSize: 18, fontWeight: '900' },
-  card: {
-    marginTop: 18,
-    backgroundColor: colors.card,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    padding: 16,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center' },
-  emergencyIconWrap: {
-    aspectRatio: 1,
-    minWidth: 34,
-    minHeight: 34,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '900', flex: 1 },
-  nowTag: { color: 'rgba(34,197,94,0.95)', fontWeight: '900' },
-  cardBody: { color: colors.muted, marginTop: 10, lineHeight: 20 },
-  progressWrap: {
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    overflow: 'hidden',
-    marginTop: 14,
-  },
-  progressInner: { height: '100%', backgroundColor: colors.primary },
-  confRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 10 },
-  confLabel: { color: colors.muted, fontSize: 14, fontWeight: '600' },
-  confValue: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 14,
-    padding: 12,
-    borderRadius: 16,
-    backgroundColor: 'rgba(11,107,31,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(11,107,31,0.22)',
-  },
-  infoText: { color: colors.muted, marginLeft: 10, lineHeight: 18, fontSize: 13, flex: 1 },
-  footer: {
-    width: '100%',
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-});

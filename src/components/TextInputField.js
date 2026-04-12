@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useAppTheme } from '../state/appTheme';
 
 export function TextInputField({
   value,
@@ -15,6 +15,39 @@ export function TextInputField({
   onBlur,
   ...rest
 }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        outer: {
+          width: '100%',
+        },
+        wrap: {
+          width: '100%',
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: colors.inputBorder,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          backgroundColor: colors.inputBg,
+        },
+        wrapError: {
+          borderColor: colors.danger,
+        },
+        input: {
+          color: colors.text,
+          fontSize: 17,
+        },
+        errorText: {
+          color: colors.danger,
+          fontSize: 13,
+          marginTop: 6,
+          marginLeft: 2,
+        },
+      }),
+    [colors.danger, colors.inputBg, colors.inputBorder, colors.text],
+  );
+
   return (
     <View style={[styles.outer, style]}>
       <View style={[styles.wrap, error ? styles.wrapError : null]}>
@@ -39,32 +72,3 @@ export function TextInputField({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  outer: {
-    width: '100%',
-  },
-  wrap: {
-    width: '100%',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(17,27,46,0.35)',
-  },
-  wrapError: {
-    borderColor: colors.danger,
-  },
-  input: {
-    color: colors.text,
-    fontSize: 17,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 13,
-    marginTop: 6,
-    marginLeft: 2,
-  },
-});
-
