@@ -21,11 +21,9 @@ function AppGate() {
   const { navTheme } = useAppTheme();
 
   const flow = useMemo(() => {
-    if (!onboardingDone) return { initial: 'Onboarding', key: 'onboarding' };
-    if (!user) return { initial: 'Login', key: 'auth' };
-    if (!allCoreGranted) return { initial: 'Permissions', key: 'permissions' };
-    if (!accessGranted && !subscription?.skipForNow) return { initial: 'Subscription', key: 'subscription' };
-    return { initial: 'MainTabs', key: 'main' };
+    // Demo flow requested: always show onboarding first, then sign-in.
+    // (Onboarding screen itself routes to Login after page 2 / skip.)
+    return { initial: 'Onboarding', key: 'demo-onboarding' };
   }, [accessGranted, allCoreGranted, onboardingDone, subscription?.skipForNow, user]);
 
   if (authBooting || onboardingBooting || permBooting || subsBooting) {
